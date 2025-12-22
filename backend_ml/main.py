@@ -120,24 +120,28 @@ app = FastAPI(
     version="1.0.0",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# CORS
+# CORS - Izinkan request dari backend utama dan frontend
 origins = [
     "http://localhost",
     "http://localhost:3000",
     "http://localhost:5173",
-    "http://localhost:8001",  # Backend aplikasi
+    "http://localhost:5174",
+    "http://localhost:8001",  # Backend aplikasi lokal
     "http://127.0.0.1:5500",
+    "https://handspeak-production.up.railway.app",  # Backend di Railway
     "https://handspeak-mu.vercel.app",
-    "*",  # dev
+    "https://handspeak-mu.vercel.app/",
+    "*",  # dev/testing
 ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["*"],
+)
 
 
 
