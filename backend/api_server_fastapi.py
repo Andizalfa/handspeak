@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 import random
 import string
+import os
 
 import httpx
 import aiosmtplib
@@ -27,30 +28,39 @@ from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
 # ==========================
 
 # --- Konfigurasi ML Service URL ---
-ML_SERVICE_URL = "http://localhost:8002"  # URL backend ML
+ML_SERVICE_URL = os.getenv("ML_SERVICE_URL", "http://localhost:8002")
 
 # --- Konfigurasi JWT ---
-SECRET_KEY = "ganti_dengan_string_rahasia_yang_panjang"  # GANTI di production
+SECRET_KEY = os.getenv("SECRET_KEY", "ganti_dengan_string_rahasia_yang_panjang")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 hari
 
 # --- Konfigurasi Email (Gmail SMTP) ---
-# GANTI dengan credentials Gmail Anda
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_USER = "11231010@student.itk.ac.id"  # Email pengirim
-SMTP_PASSWORD = "wmqx zmhj gsdb xrud"  # App Password Gmail (bukan password biasa)
-SMTP_FROM_EMAIL = "HandSpeak <11231010@student.itk.ac.id>"
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "11231010@student.itk.ac.id")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "wmqx zmhj gsdb xrud")
+SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "HandSpeak <11231010@student.itk.ac.id>")
 
 # --- Konfigurasi DB (MySQL) ---
-# Format: mysql+pymysql://username:password@host:port/database
-MYSQL_USER = "11231010_andizalfa"  # Ganti dengan username MySQL Anda
-MYSQL_PASSWORD = "andizalfa05"  # Ganti dengan password MySQL Anda (kosongkan jika tidak ada password)
-MYSQL_HOST = "localhost"  # atau IP server MySQL
-MYSQL_PORT = "3306"  # port default MySQL
-MYSQL_DATABASE = "handspeak"
+# Bisa dari DATABASE_URL (Railway format) atau individual variables
+DATABASE_URL = os.getenv("DATABASE_URL", None)
 
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
+if DATABASE_URL:
+    # Railway biasanya provide DATABASE_URL langsung
+    SQLALCHEMY_DATABASE_URL = DATABASE_URL
+    # Railway MySQL format: mysql://user:pass@host:port/db
+    # FastAPI butuh: mysql+pymysql://user:pass@host:port/db
+    if DATABASE_URL.startswith("mysql://"):
+        SQLALCHEMY_DATABASE_URL = DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
+else:
+    # Fallback ke individual variables untuk development
+    MYSQL_USER = os.getenv("MYSQL_USER", "11231010_andizalfa")
+    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "andizalfa05")
+    MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
+    MYSQL_PORT = os.getenv("MYSQL_PORT", "3306")
+    MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "handspeak")
+    SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
 
 # ==========================
 # 2. OTP STORAGE (In-Memory)
