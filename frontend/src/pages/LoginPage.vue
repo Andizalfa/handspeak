@@ -415,7 +415,7 @@ let forgotPasswordTimer = null;
 // Success Modal
 const showResetSuccess = ref(false);
 
-const API_BASE = "http://127.0.0.1:8001";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8001";
 
 async function handleLogin() {
   loading.value = true;

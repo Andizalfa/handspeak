@@ -1,6 +1,7 @@
 // src/api/apiClient.js
 
-const API_BASE = "http://localhost:8001"; // sesuaikan kalau port/backend beda
+// Support environment variables untuk production
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8001";
 
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`;

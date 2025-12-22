@@ -304,7 +304,7 @@ const successMessage = ref("");
 const timeRemaining = ref(300); // 5 minutes in seconds
 let countdownInterval = null;
 
-const API_BASE = "http://127.0.0.1:8001";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8001";
 
 const stepDescription = computed(() => {
   switch (currentStep.value) {
