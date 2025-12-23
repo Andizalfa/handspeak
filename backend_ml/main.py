@@ -21,6 +21,10 @@ HF_REPO_ID = os.getenv("HF_REPO_ID", "Andizalfa05/handspeak")  # Format: usernam
 HF_MODEL_FILE = "bisindo_best.h5"
 HF_LABELS_FILE = "labels.json"
 
+# Force download from HuggingFace even if local files exist
+# Set to True to always download fresh model from HF
+FORCE_DOWNLOAD_FROM_HF = os.getenv("FORCE_DOWNLOAD_FROM_HF", "False").lower() == "true"
+
 # Local paths (akan di-download ke sini)
 LOCAL_MODEL_DIR = "models"
 MODEL_PATH = os.path.join(LOCAL_MODEL_DIR, HF_MODEL_FILE)
@@ -56,9 +60,12 @@ class PredictionResponse(BaseModel):
 def download_model_from_huggingface():
     """
     Download model dan labels dari Hugging Face jika belum ada di lokal
+    atau jika FORCE_DOWNLOAD_FROM_HF = True
     """
     print("\n" + "="*60)
     print("🤗 Checking Hugging Face models...")
+    print(f"   Repository: {HF_REPO_ID}")
+    print(f"   Force download: {FORCE_DOWNLOAD_FROM_HF}")
     print("="*60)
     
     # Create models directory if not exists
@@ -66,29 +73,40 @@ def download_model_from_huggingface():
     
     try:
         # Download model file
-        if not os.path.exists(MODEL_PATH):
-            print(f"📥 Downloading model from Hugging Face: {HF_REPO_ID}/{HF_MODEL_FILE}")
+        if not os.path.exists(MODEL_PATH) or FORCE_DOWNLOAD_FROM_HF:
+            if FORCE_DOWNLOAD_FROM_HF and os.path.exists(MODEL_PATH):
+                print(f"🔄 Force downloading model (overwriting local file)...")
+            else:
+                print(f"📥 Downloading model from Hugging Face: {HF_REPO_ID}/{HF_MODEL_FILE}")
+            
             model_path = hf_hub_download(
                 repo_id=HF_REPO_ID,
                 filename=HF_MODEL_FILE,
                 cache_dir="./cache",
                 local_dir=LOCAL_MODEL_DIR,
-                local_dir_use_symlinks=False
+                local_dir_use_symlinks=False,
+                force_download=FORCE_DOWNLOAD_FROM_HF
             )
             print(f"✅ Model downloaded to: {model_path}")
         else:
             print(f"✅ Model already exists locally: {MODEL_PATH}")
+            print(f"   💡 Set FORCE_DOWNLOAD_FROM_HF=true to re-download from HuggingFace")
         
         # Download labels file (optional - fallback ke lokal jika tidak ada)
-        if not os.path.exists(LABELS_PATH):
+        if not os.path.exists(LABELS_PATH) or FORCE_DOWNLOAD_FROM_HF:
             try:
-                print(f"📥 Downloading labels from Hugging Face: {HF_REPO_ID}/{HF_LABELS_FILE}")
+                if FORCE_DOWNLOAD_FROM_HF and os.path.exists(LABELS_PATH):
+                    print(f"🔄 Force downloading labels (overwriting local file)...")
+                else:
+                    print(f"📥 Downloading labels from Hugging Face: {HF_REPO_ID}/{HF_LABELS_FILE}")
+                
                 labels_path = hf_hub_download(
                     repo_id=HF_REPO_ID,
                     filename=HF_LABELS_FILE,
                     cache_dir="./cache",
                     local_dir=LOCAL_MODEL_DIR,
-                    local_dir_use_symlinks=False
+                    local_dir_use_symlinks=False,
+                    force_download=FORCE_DOWNLOAD_FROM_HF
                 )
                 print(f"✅ Labels downloaded to: {labels_path}")
             except Exception as label_error:
@@ -120,28 +138,23 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS - Izinkan request dari backend utama dan frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# CORS
 origins = [
     "http://localhost",
     "http://localhost:3000",
     "http://localhost:5173",
-    "http://localhost:5174",
-    "http://localhost:8001",  # Backend aplikasi lokal
+    "http://localhost:8001",  # Backend aplikasi
     "http://127.0.0.1:5500",
-    "https://handspeak-production.up.railway.app",  # Backend di Railway
-    "https://handspeak-mu.vercel.app",
-    "https://handspeak-mu.vercel.app/",
-    "*",  # dev/testing
+    "*",  # dev
 ]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
 
 
 
