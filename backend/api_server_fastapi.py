@@ -7,9 +7,6 @@ import random
 import string
 
 import httpx
-import aiosmtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 
 from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,34 +19,38 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship, Session
 
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
 # ==========================
 # 1. KONFIGURASI APLIKASI
 # ==========================
 
 # --- Konfigurasi ML Service URL ---
-ML_SERVICE_URL = "http://localhost:8002"  # URL backend ML
+ML_SERVICE_URL = os.getenv("ML_SERVICE_URL", "http://localhost:8002")  # URL backend ML
 
 # --- Konfigurasi JWT ---
-SECRET_KEY = "ganti_dengan_string_rahasia_yang_panjang"  # GANTI di production
+SECRET_KEY = os.getenv("SECRET_KEY", "ganti_dengan_string_rahasia_yang_panjang")  # GANTI di production
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 hari
 
-# --- Konfigurasi Email (Gmail SMTP) ---
-# GANTI dengan credentials Gmail Anda
-SMTP_HOST = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_USER = "11231010@student.itk.ac.id"  # Email pengirim
-SMTP_PASSWORD = "wmqx zmhj gsdb xrud"  # App Password Gmail (bukan password biasa)
-SMTP_FROM_EMAIL = "HandSpeak <11231010@student.itk.ac.id>"
+# --- Konfigurasi Email (Resend) ---
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "HandSpeak <onboarding@resend.dev>")
+# Email yang diizinkan untuk testing (sebelum domain verified)
+ALLOWED_TEST_EMAIL = os.getenv("ALLOWED_TEST_EMAIL", "11231010@student.itk.ac.id")
 
 # --- Konfigurasi DB (MySQL) ---
-# Format: mysql+pymysql://username:password@host:port/database
-MYSQL_USER = "11231010_andizalfa"  # Ganti dengan username MySQL Anda
-MYSQL_PASSWORD = "andizalfa05"  # Ganti dengan password MySQL Anda (kosongkan jika tidak ada password)
-MYSQL_HOST = "localhost"  # atau IP server MySQL
-MYSQL_PORT = "3306"  # port default MySQL
-MYSQL_DATABASE = "handspeak"
+MYSQL_USER = os.getenv("MYSQL_USER", "root")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
+MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
+MYSQL_PORT = os.getenv("MYSQL_PORT", "3306")
+MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "handspeak")
 
+# Format: mysql+pymysql://username:password@host:port/database
 SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
 
 # ==========================
@@ -64,15 +65,13 @@ def generate_otp(length=6):
     return ''.join(random.choices(string.digits, k=length))
 
 async def send_email_otp(email: str, otp: str):
-    """Kirim email OTP menggunakan Gmail SMTP"""
+    """Kirim email OTP menggunakan Resend API"""
     try:
         print(f"📧 Attempting to send OTP to: {email}")
         
-        # Buat pesan email
-        message = MIMEMultipart("alternative")
-        message["Subject"] = "Kode Verifikasi HandSpeak"
-        message["From"] = SMTP_FROM_EMAIL
-        message["To"] = email
+        if not RESEND_API_KEY:
+            print("⚠️ RESEND_API_KEY tidak ditemukan di environment variables")
+            return False
         
         # HTML body untuk email
         html = f"""
@@ -98,34 +97,36 @@ async def send_email_otp(email: str, otp: str):
         </html>
         """
         
-        part = MIMEText(html, "html")
-        message.attach(part)
+        print(f"📨 Sending email via Resend API")
         
-        print(f"📨 Connecting to SMTP server: {SMTP_HOST}:{SMTP_PORT}")
+        # Kirim email menggunakan Resend API via HTTP
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "from": RESEND_FROM_EMAIL,
+                    "to": [email],
+                    "subject": "Kode Verifikasi HandSpeak",
+                    "html": html,
+                },
+                timeout=30.0
+            )
         
-        # Kirim email
-        await aiosmtplib.send(
-            message,
-            hostname=SMTP_HOST,
-            port=SMTP_PORT,
-            username=SMTP_USER,
-            password=SMTP_PASSWORD,
-            start_tls=True,
-            timeout=30,  # Tambahkan timeout
-        )
+        if response.status_code == 200:
+            print(f"✅ Email sent successfully to: {email}")
+            print(f"📧 Resend response: {response.json()}")
+            return True
+        else:
+            print(f"❌ Resend API error - Status: {response.status_code}")
+            print(f"📧 Response: {response.text}")
+            return False
         
-        print(f"✅ Email sent successfully to: {email}")
-        return True
-        
-    except aiosmtplib.SMTPAuthenticationError as e:
-        print(f"❌ SMTP Authentication Error: {e}")
-        print("⚠️ Periksa SMTP_USER dan SMTP_PASSWORD di konfigurasi")
-        return False
-    except aiosmtplib.SMTPException as e:
-        print(f"❌ SMTP Error: {e}")
-        return False
     except Exception as e:
-        print(f"❌ Unexpected error sending email: {type(e).__name__}: {e}")
+        print(f"❌ Error sending email via Resend: {type(e).__name__}: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -388,12 +389,25 @@ async def health_check():
 async def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
     """
     Kirim kode OTP ke email untuk verifikasi registrasi
+    
+    CATATAN: Dalam mode development, hanya email terdaftar di Resend yang bisa digunakan.
+    Untuk production, setup domain di resend.com/domains
     """
     email = request.email
     
     print(f"\n{'='*60}")
     print(f"📥 Received OTP request for email: {email}")
     print(f"{'='*60}")
+    
+    # DEVELOPMENT MODE: Validasi email untuk Resend testing
+    # Hanya email yang terdaftar di Resend account yang bisa digunakan
+    
+    if email.lower() != ALLOWED_TEST_EMAIL.lower():
+        print(f"⚠️ Email not allowed in testing mode: {email}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Dalam mode development, hanya email {ALLOWED_TEST_EMAIL} yang bisa digunakan. Untuk production, setup domain di resend.com/domains"
+        )
     
     # Cek apakah email sudah terdaftar
     existing_user = get_user_by_email(db, email)
@@ -430,7 +444,7 @@ async def send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
             del otp_storage[email]
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Gagal mengirim email. Periksa konfigurasi SMTP atau pastikan email valid."
+            detail="Gagal mengirim email. Periksa konfigurasi Resend API atau pastikan email valid."
         )
     
     print(f"✅ OTP sent successfully to: {email}")
@@ -486,12 +500,23 @@ async def verify_otp(request: VerifyOTPRequest):
 async def forgot_password_send_otp(request: SendOTPRequest, db: Session = Depends(get_db)):
     """
     Kirim kode OTP ke email untuk reset password
+    
+    CATATAN: Dalam mode development, hanya email terdaftar di Resend yang bisa digunakan.
     """
     email = request.email
     
     print(f"\n{'='*60}")
     print(f"🔐 Received forgot password OTP request for: {email}")
     print(f"{'='*60}")
+    
+    # DEVELOPMENT MODE: Validasi email untuk Resend testing
+    
+    if email.lower() != ALLOWED_TEST_EMAIL.lower():
+        print(f"⚠️ Email not allowed in testing mode: {email}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Dalam mode development, hanya email {ALLOWED_TEST_EMAIL} yang bisa digunakan."
+        )
     
     # Cek apakah email terdaftar
     existing_user = get_user_by_email(db, email)

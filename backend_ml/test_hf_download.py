@@ -4,9 +4,13 @@ Test script untuk download model dari Hugging Face
 
 import os
 from huggingface_hub import hf_hub_download
+from dotenv import load_dotenv
 
-# GANTI dengan repository Anda!
-HF_REPO_ID = "Andizalfa05/handspeak"  # Format: username/repo-name
+# Load environment variables
+load_dotenv()
+
+# GANTI dengan repository Anda di .env!
+HF_REPO_ID = os.getenv("HF_REPO_ID", "USERNAME/REPO_NAME")  # Format: username/repo-name
 
 def test_download():
     print("="*60)
