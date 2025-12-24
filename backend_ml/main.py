@@ -138,7 +138,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-CORS
 origins = [
     "http://localhost",
     "http://localhost:3000",
