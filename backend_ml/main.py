@@ -140,21 +140,22 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# CORS
-# origins = [
-#     "http://localhost",
-#     "http://localhost:3000",
-#     "http://localhost:5173",
-#     "http://localhost:8001",  # Backend aplikasi
-#     "http://127.0.0.1:5500",
-#     "*",  # dev
-# ]
+CORS
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8001",  # Backend aplikasi
+    "http://127.0.0.1:5500",
+    "https://handspeak-one.vercel.app",
+    "*",  # dev
+]
 
 
 
