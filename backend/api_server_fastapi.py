@@ -30,7 +30,7 @@ load_dotenv()
 # ==========================
 
 # --- Konfigurasi ML Service URL ---
-ML_SERVICE_URL = os.getenv("ML_SERVICE_URL", "http://localhost:8002")  # URL backend ML
+ML_SERVICE_URL = os.getenv("ML_SERVICE_URL")  # URL backend ML
 
 # --- Konfigurasi JWT ---
 SECRET_KEY = os.getenv("SECRET_KEY", "ganti_dengan_string_rahasia_yang_panjang")  # GANTI di production
@@ -859,6 +859,6 @@ if __name__ == "__main__":
     import uvicorn
     import os
 
-    port = int(os.getenv("PORT", 8001))
+    port = int(os.getenv("PORT", 8000))
 
     uvicorn.run("api_server_fastapi:app", host="0.0.0.0", port=port)

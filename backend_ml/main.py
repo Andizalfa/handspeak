@@ -323,4 +323,9 @@ async def predict(req: SequenceRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8002, reload=False)
+    import os
+    
+    # Gunakan PORT dari env Railway, default ke 8000 atau port lain jika lokal
+    port = int(os.getenv("PORT", 8080)) 
+    
+    uvicorn.run(app, host="0.0.0.0", port=port)
