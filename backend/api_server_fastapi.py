@@ -311,7 +311,7 @@ origins = [
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5500",
-    "https://handspeak-one.vercel.app",
+    "https://handspeak-three.vercel.app",  # Frontend Vercel
     "https://handspeak-production.up.railway.app",  # Backend Railway
     "https://backendml-production-326a.up.railway.app",  # Backend ML Railway
 ]

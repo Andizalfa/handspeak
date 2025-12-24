@@ -144,7 +144,9 @@ origins = [
     "http://localhost:5173",
     "http://localhost:8001",  # Backend aplikasi
     "http://127.0.0.1:5500",
-    "https://handspeak-one.vercel.app",
+    "https://handspeak-three.vercel.app",
+    "https://handspeak-production.up.railway.app",  # Backend Railway
+    "https://backendml-production-326a.up.railway.app",  # Backend ML Railway
     "*",  # dev
 ]
 
