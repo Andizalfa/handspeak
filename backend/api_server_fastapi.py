@@ -157,7 +157,7 @@ class User(Base):
 
 
 class SignLanguageHistory(Base):
-    __tablename__ = "SignLanguageHistory"
+    __tablename__ = "signlanguagehistory"
 
     id_history = Column(Integer, primary_key=True, autoincrement=True, name="id_history")
     id_user = Column(Integer, ForeignKey("users.id_user"), nullable=False, name="id_user")
