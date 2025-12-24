@@ -301,22 +301,27 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS
+# CORS - Konfigurasi untuk production (Railway + Vercel)
 origins = [
     "http://localhost",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5500",
     "https://handspeak-one.vercel.app",
-    "*",  # dev
+    "https://handspeak-production.up.railway.app",  # Backend Railway
+    "https://backendml-production-326a.up.railway.app",  # Backend ML Railway
 ]
+
+# Untuk development, bisa tambahkan "*" jika perlu testing
+# Tapi untuk production sebaiknya explicit origins saja
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins,  # Atau gunakan ["*"] untuk allow all (tidak disarankan di production)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],  # Tambahkan ini untuk expose semua headers
 )
 
 
