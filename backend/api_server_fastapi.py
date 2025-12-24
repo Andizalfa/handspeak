@@ -168,8 +168,12 @@ class SignLanguageHistory(Base):
     user = relationship("User", back_populates="histories")
 
 
-# Tidak perlu create_all karena tabel sudah dibuat manual di MySQL
-# Base.metadata.create_all(bind=engine)
+# Auto-create tables jika belum ada (untuk Railway deployment)
+try:
+    Base.metadata.create_all(bind=engine)
+    print("✅ Database tables created/verified successfully")
+except Exception as e:
+    print(f"⚠️ Warning: Could not create tables: {e}")
 
 # Dependency DB
 def get_db():
