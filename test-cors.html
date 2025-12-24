@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test CORS - HandSpeak</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #5B8FB9;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        button {
+            background: #5B8FB9;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #4a7a9a;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .badge-ok {
+            background: #28a745;
+            color: white;
+        }
+        .badge-error {
+            background: #dc3545;
+            color: white;
+        }
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            max-width: 500px;
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 CORS & API Testing Tool</h1>
+        <p class="subtitle">Tool untuk test koneksi ke backend Railway</p>
+
+        <!-- Section 1: Test Basic Connection -->
+        <div class="section">
+            <h2>1. Test Koneksi Backend</h2>
+            <p>Test apakah backend Railway accessible</p>
+            <button onclick="testBackendConnection()">Test Koneksi</button>
+            <div id="connection-result"></div>
+        </div>
+
+        <!-- Section 2: Test CORS Headers -->
+        <div class="section">
+            <h2>2. Test CORS Headers</h2>
+            <p>Test apakah CORS headers sudah benar</p>
+            <button onclick="testCorsHeaders()">Test CORS</button>
+            <div id="cors-result"></div>
+        </div>
+
+        <!-- Section 3: Test History Endpoint (With Token) -->
+        <div class="section">
+            <h2>3. Test History Endpoint</h2>
+            <p>Test endpoint /history dengan authentication</p>
+            
+            <label for="token-input">Access Token (dari localStorage):</label>
+            <input type="text" id="token-input" placeholder="Paste token dari localStorage.getItem('access_token')">
+            
+            <br>
+            <button onclick="testHistoryEndpoint()">Test History Endpoint</button>
+            <button onclick="getTokenFromLocalStorage()">Get Token dari localStorage</button>
+            
+            <div id="history-result"></div>
+        </div>
+
+        <!-- Section 4: Environment Check -->
+        <div class="section">
+            <h2>4. Environment Check</h2>
+            <p>Informasi environment saat ini</p>
+            <button onclick="checkEnvironment()">Check Environment</button>
+            <div id="env-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'https://handspeak-production.up.railway.app';
+        
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.innerHTML = message;
+        }
+
+        async function testBackendConnection() {
+            showResult('connection-result', '⏳ Testing connection...', 'info');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/docs`);
+                
+                if (response.ok) {
+                    const text = await response.text();
+                    showResult('connection-result', 
+                        `✅ Backend accessible!\n\nStatus: ${response.status}\nContent-Type: ${response.headers.get('content-type')}\nResponse length: ${text.length} bytes`, 
+                        'success'
+                    );
+                } else {
+                    showResult('connection-result', 
+                        `❌ Backend returned error\n\nStatus: ${response.status}\n${response.statusText}`, 
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('connection-result', 
+                    `❌ Connection failed!\n\nError: ${error.message}\n\nKemungkinan:\n1. Backend Railway tidak running\n2. URL salah\n3. Network issue`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testCorsHeaders() {
+            showResult('cors-result', '⏳ Testing CORS headers...', 'info');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/history`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': window.location.origin,
+                        'Access-Control-Request-Method': 'GET',
+                    }
+                });
+                
+                const allowOrigin = response.headers.get('access-control-allow-origin');
+                const allowMethods = response.headers.get('access-control-allow-methods');
+                const allowHeaders = response.headers.get('access-control-allow-headers');
+                const allowCredentials = response.headers.get('access-control-allow-credentials');
+                
+                let result = `Status: ${response.status}\n\n`;
+                result += `CORS Headers:\n`;
+                result += `- Access-Control-Allow-Origin: ${allowOrigin || '❌ MISSING'}\n`;
+                result += `- Access-Control-Allow-Methods: ${allowMethods || '❌ MISSING'}\n`;
+                result += `- Access-Control-Allow-Headers: ${allowHeaders || '❌ MISSING'}\n`;
+                result += `- Access-Control-Allow-Credentials: ${allowCredentials || '❌ MISSING'}\n`;
+                
+                const isOk = allowOrigin && allowMethods;
+                showResult('cors-result', 
+                    (isOk ? '✅ ' : '❌ ') + result, 
+                    isOk ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('cors-result', 
+                    `❌ CORS test failed!\n\nError: ${error.message}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testHistoryEndpoint() {
+            const token = document.getElementById('token-input').value.trim();
+            
+            if (!token) {
+                showResult('history-result', 
+                    '❌ Token tidak diisi!\n\nSilakan:\n1. Login ke aplikasi\n2. Buka console dan ketik: localStorage.getItem("access_token")\n3. Copy token dan paste ke input di atas', 
+                    'error'
+                );
+                return;
+            }
+            
+            showResult('history-result', '⏳ Testing /history endpoint...', 'info');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/history`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('history-result', 
+                        `✅ History endpoint berhasil!\n\nStatus: ${response.status}\nData count: ${Array.isArray(data) ? data.length : 'N/A'}\n\nResponse:\n${JSON.stringify(data, null, 2)}`, 
+                        'success'
+                    );
+                } else {
+                    showResult('history-result', 
+                        `❌ Request failed\n\nStatus: ${response.status}\nError: ${JSON.stringify(data, null, 2)}`, 
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showResult('history-result', 
+                    `❌ Request failed!\n\nError: ${error.message}\n\nCORS Error? Cek:\n1. Apakah backend CORS sudah benar?\n2. Apakah token valid?\n3. Apakah backend running?`, 
+                    'error'
+                );
+            }
+        }
+
+        function getTokenFromLocalStorage() {
+            const token = localStorage.getItem('access_token');
+            
+            if (token) {
+                document.getElementById('token-input').value = token;
+                showResult('history-result', 
+                    `✅ Token found!\n\n${token}`, 
+                    'success'
+                );
+            } else {
+                showResult('history-result', 
+                    `❌ Token tidak ditemukan di localStorage!\n\nSilakan login terlebih dahulu di:\nhttps://handspeak-one.vercel.app/login`, 
+                    'error'
+                );
+            }
+        }
+
+        function checkEnvironment() {
+            const info = {
+                'Current URL': window.location.href,
+                'Origin': window.location.origin,
+                'Backend URL': BACKEND_URL,
+                'User Agent': navigator.userAgent,
+                'LocalStorage access_token': localStorage.getItem('access_token') ? 'Available ✅' : 'Not found ❌',
+            };
+            
+            let result = 'Environment Information:\n\n';
+            for (const [key, value] of Object.entries(info)) {
+                result += `${key}:\n  ${value}\n\n`;
+            }
+            
+            showResult('env-result', result, 'info');
+        }
+    </script>
+</body>
+</html>
