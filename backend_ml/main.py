@@ -147,14 +147,14 @@ app.add_middleware(
 )
 
 # CORS
-origins = [
-    "http://localhost",
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://localhost:8001",  # Backend aplikasi
-    "http://127.0.0.1:5500",
-    "*",  # dev
-]
+# origins = [
+#     "http://localhost",
+#     "http://localhost:3000",
+#     "http://localhost:5173",
+#     "http://localhost:8001",  # Backend aplikasi
+#     "http://127.0.0.1:5500",
+#     "*",  # dev
+# ]
 
 
 
