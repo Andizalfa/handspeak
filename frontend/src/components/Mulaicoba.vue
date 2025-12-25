@@ -16,42 +16,46 @@
         <div class="flex flex-col h-full w-full">
           <div class="bg-white rounded-2xl shadow-xl p-4 sm:p-5 flex flex-col h-full border-2 border-white/50 backdrop-blur-sm">
             
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-              <div>
+            <div class="flex flex-col gap-2 mb-4">
+              <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <div class="w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#64CCC5] to-[#4FB8B0]">
                     <Camera class="w-4 h-4 text-white" />
                   </div>
                   <h2 class="text-gray-800 font-bold text-base sm:text-lg">Preview Kamera</h2>
                 </div>
-                <p class="text-xs text-gray-500 mt-1 pl-10 hidden sm:block">
-                  Pastikan posisi tangan terlihat jelas
-                </p>
+
+                <div class="flex items-center gap-2">
+                  <div
+                    v-if="isDetecting && sequenceBuffer.length >= SEQUENCE_LENGTH"
+                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-200"
+                  >
+                    <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                    <span class="text-xs font-semibold text-amber-800 whitespace-nowrap">
+                      Mendeteksi...
+                    </span>
+                  </div>
+
+                  <button
+                    @click="toggleDetection"
+                    class="py-2 px-4 sm:px-5 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-sm font-semibold min-w-[100px]"
+                    :class="isDetecting ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-[#5B8FB9] to-[#4A7BA7]'"
+                  >
+                    <component :is="isDetecting ? Square : Play" class="w-4 h-4 fill-current" />
+                    {{ isDetecting ? "Hentikan" : "Mulai" }}
+                  </button>
+                </div>
               </div>
 
-              <div class="flex items-center gap-2 self-end sm:self-auto">
-                <div
-                  v-if="isDetecting && sequenceBuffer.length >= SEQUENCE_LENGTH"
-                  class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-200"
-                >
-                  <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                  <span class="text-xs font-semibold text-amber-800 whitespace-nowrap">
-                    Mendeteksi...
-                  </span>
-                </div>
-
-                <button
-                  @click="toggleDetection"
-                  class="py-2 px-4 sm:px-5 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-sm font-semibold min-w-[100px]"
-                  :class="isDetecting ? 'bg-gradient-to-r from-red-500 to-red-600' : 'bg-gradient-to-r from-[#5B8FB9] to-[#4A7BA7]'"
-                >
-                  <component :is="isDetecting ? Square : Play" class="w-4 h-4 fill-current" />
-                  {{ isDetecting ? "Hentikan" : "Mulai" }}
-                </button>
+              <div class="sm:hidden flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 border border-amber-100">
+                <AlertCircle class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p class="text-gray-700 text-xs leading-snug">
+                  Pastikan pencahayaan cukup terang dan tangan Anda berada di dalam frame kamera untuk hasil deteksi yang optimal.
+                </p>
               </div>
             </div>
 
-            <div class="relative bg-slate-900 rounded-xl overflow-hidden shadow-inner w-full aspect-[4/3] sm:aspect-video lg:h-[420px] xl:h-[480px]">
+            <div class="relative bg-slate-900 rounded-xl overflow-hidden shadow-inner w-full aspect-[4/3] sm:aspect-video lg:h-[400px] xl:h-[480px]">
               
               <div
                 v-if="!isDetecting"
@@ -80,7 +84,7 @@
               ></canvas>
             </div>
 
-            <div class="mt-4 flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-100">
+            <div class="mt-4 hidden sm:flex items-start gap-3 p-3 rounded-lg bg-amber-50 border border-amber-100">
               <AlertCircle class="w-5 h-5 text-amber-500 flex-shrink-0" />
               <p class="text-gray-700 text-xs sm:text-sm leading-snug">
                 Pastikan pencahayaan cukup terang dan tangan Anda berada di dalam frame kamera untuk hasil deteksi yang optimal.

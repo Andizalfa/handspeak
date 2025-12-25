@@ -56,13 +56,13 @@
             <template v-else>
               <button
                 @click="$router.push('/register')"
-                class="px-3 py-2 text-white hover:bg-white/10 rounded-lg transition-all duration-200 text-xs sm:text-sm font-medium"
+                class="px-3 py-2 text-white hover:bg-white/10 rounded-lg transition-all duration-200 text-base sm:text-lg font-medium"
               >
                 Daftar
               </button>
               <button
                 @click="$router.push('/login')"
-                class="px-4 py-2 bg-white text-[#5B8FB9] hover:bg-slate-50 rounded-lg shadow-md transition-all duration-200 text-xs sm:text-sm font-bold"
+                class="px-4 py-2 bg-white text-[#5B8FB9] hover:bg-slate-50 rounded-lg shadow-md transition-all duration-200 text-base sm:text-lg font-bold"
               >
                 Masuk
               </button>
